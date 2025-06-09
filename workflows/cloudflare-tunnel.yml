@@ -1,0 +1,23 @@
+name: Cloudflare Tunnel RDP
+
+on: [push, workflow_dispatch]
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+
+    steps:
+    - name: Install cloudflared
+      run: |
+        Invoke-WebRequest https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe -OutFile cloudflared.exe
+        Move-Item cloudflared.exe C:\windows\system32\cloudflared.exe
+
+    - name: Enable RDP and firewall
+      run: |
+        Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
+        Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'
+        net user runneradmin P@ssw0rd!
+
+    - name: Start tunnel
+      run: |
+        echo '${{ secrets.CF_TUNNEL_TOKEN }}' | cloudflared tunnel --no-autoupdate run --token
